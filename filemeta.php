@@ -44,6 +44,14 @@ class Filemeta {
         return array_pop($data);
     }
 
+    private function formatBytes($size, $precision = 2) {
+        $base = log($size, 1024);
+        $suffixes = array('', 'K', 'M', 'G', 'T');
+
+        return round(pow(1024, $base - floor($base)), $precision) . $suffixes[floor($base)];
+    }
+
+
     /**
      * Get the file content
      *
@@ -69,9 +77,21 @@ class Filemeta {
      * https://en.wikipedia.org/wiki/List_of_file_signatures
      * @param $signature
      *
-     * @return string  extenion
+     * @return string  extension
      */
     private function get_filetype($signature) {
+
+        if (strpos( $signature, MAGIC_NUMBERS["RIFF"] ) === 0) {
+
+            // read 32 bits (uint32) | the whole file size in bytes
+            $this->meta['filesize'] = self::readInt($this->file_content);
+            $this->meta['readeable-filesize'] = self::formatBytes($this->meta['filesize']);
+
+            // read 32 bits - 4 char | webp extension
+            $this->meta['extension'] = self::readXChar($this->file_content, 4);
+
+            return "RIFF";
+        }
 
         // compare the file magic numbers with the library available formats
         foreach(MAGIC_NUMBERS as $ext => $magic) {
@@ -195,29 +215,22 @@ class Filemeta {
         if (!$magic_numbers) return false;
 
         // detect the filetype given the file header
-        $filetype = self::get_filetype($magic_numbers);
+        $magic = self::get_filetype($magic_numbers);
 
         $this->meta['filename'] = $this->file_path; // read 32 bits (uint32) | the whole file size
+        $this->meta['ext'] = pathinfo($this->file_path, PATHINFO_EXTENSION);
 
         // TODO: each file has it own header with different size in bytes so this will be moved in "get_filetype" that will return the basic information stored in the first bytes of the files
-        if ($filetype == 'webp') {
-
-            // read 32 bits (uint32) | the whole file size in bytes
-            $this->meta['filesize'] = self::readInt($this->file_content);
-
-            // read 32 bits - 4 char | webp extension
-            $this->meta['extension'] = self::readXChar($this->file_content, 4);
+        if ($magic == 'RIFF') {
 
             self::get_riff_chunks();
 
-        } else if ($filetype == 'jpeg') {
+        } else if ($magic == 'jpeg') {
 
             self::get_jfif_chunks();
 
-        } else {
-            return "unknown filetype";
+            if (!empty($this->meta)) echo "unknown filetype ($magic)";
         }
-
 
         return $this->meta;
     }
