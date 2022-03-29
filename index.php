@@ -35,6 +35,21 @@
         margin: 10px 0;
         border: 1px solid #ccc;
       }
+      span {
+        background: #ff5722;
+        padding: 3px 6px;
+        border-radius: 3px;
+        color: white;
+      }
+      span.image{
+        background: #00bcd4;
+      }
+      span.video{
+        background: #8bc34a;
+      }
+      span.audio{
+        background: #3f51b5;
+      }
     </style>
 </head>
 
@@ -67,7 +82,7 @@ foreach (array_slice(scandir(__DIR__.'/media'), 2) as $media) {
             break;
     }
 
-    printf("<p>%s <span>%s %s</span> (%s)</p>", $media, $mime[0], $mime[1], $filepath);
+    printf("<p>%s <span class='%s'>%s %s</span> (%s)</p>", $media, $mime[0], $mime[0], $mime[1], $filepath);
 
     echo "<pre>";
     $image_blob = new Filemeta($filepath);
