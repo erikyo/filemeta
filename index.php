@@ -9,6 +9,11 @@ require_once('filemeta.php');
 
 echo '<br/><br/><br/>';
 
+$image_blob = new Filemeta(__DIR__.'/arrow.avif');
+print_r($image_blob->extract_meta());
+echo '<br/><br/><br/>';
+
+
 $image_blob = new Filemeta(__DIR__.'/arrow.webp');
 print_r($image_blob->extract_meta());
 echo '<br/><br/><br/>';
