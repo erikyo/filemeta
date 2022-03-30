@@ -28,5 +28,9 @@ https://www.w3schools.com/html/html_media.asp
 ### video samples
 https://download.blender.org/peach/bigbuckbunny_movies/
 
-#audio samples
+### audio samples
 https://espressif-docs.readthedocs-hosted.com/projects/esp-adf/en/latest/design-guide/audio-samples.html
+
+
+---
+credits https://doc.wikimedia.org/mediawiki-core/
