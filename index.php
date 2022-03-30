@@ -13,6 +13,7 @@
       body > div {
         max-width: 1200px;
         margin: auto;
+        padding: 10px;
       }
       div:nth-of-type(2n) {
         background: #f3f3f3;
@@ -32,7 +33,6 @@
         height: 200px;
         object-fit: contain;
         padding: 10px;
-        margin: 10px 0;
         border: 1px solid #ccc;
       }
       span {

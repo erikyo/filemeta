@@ -9,15 +9,17 @@ const VP8X_ICC = 32;
 const VP8X_XMP = 4;
 
 const MAGIC_NUMBERS = array(
-    "jpeg" => "ffd8ff", // but could be differentiated into ffd8ffe0 JFIF, ffd8ffe1 EXIF
     "avif" => 'ffd8ffe0',
+    "jpeg" => "ffd8ff", // but could be differentiated into ffd8ffe0 JFIF, ffd8ffe1 EXIF
+    "RIFF" => "52494646",
     "png" => "89504E47",
     "gif" => "47494638",
-    "RIFF" => "52494646",
     "webm" => "1a45dfa3",
     "avi" => "000000",
     "mp3" => "49443303",
-    "doc" => 'dba52d00',
+    "pdf" => '25504446',
+    "docx" => 'd0cf11e0',
+    "xlsx" => '504b0304'
 );
 
 const FILEMETA_INDEXES = array(
