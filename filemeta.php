@@ -6,7 +6,7 @@ class Filemeta {
 
     protected $file_path;
     protected $file_content;
-    protected $meta;
+    protected $metadata;
 
     /**
      * Extract any kind of metadata stored inside files,
@@ -17,33 +17,73 @@ class Filemeta {
     public function __construct( $filepath ) {
         $this->file_path    = $filepath;
         $this->file_content = $this->get_file($filepath);
-        $this->meta = array();
+        $this->metadata = array();
     }
 
+
     /**
-     * UTILS
-     **/
-    private function readUInt32( $string ) {
+     *
+     * UTILS: this is a set of utility to avoid repetitions
+     * generally speaking they do what their title says
+     * for example: readInt returns an integer number from the string
+     *
+     *
+     * @param $string
+     * @return mixed
+     */
+    private function toUInt32( $string ) {
         return unpack( 'V', $string )[1];
     }
 
+    /**
+     * @param $string
+     *
+     * @return mixed|null
+     */
     private function readInt($string){
         return self::readUnpack($string, 'I', 4);
     }
 
+    /**
+     * @param $string
+     * @param $length
+     *
+     * @return mixed|null
+     */
     private function readXHex($string, $length){
         return self::readUnpack($string, 'H*', $length);
     }
 
+    /**
+     * @param $string
+     * @param $length
+     *
+     * @return mixed|null
+     */
     private function readXChar($string, $length){
         return self::readUnpack($string, 'a*', $length);
     }
 
+    /**
+     * @param $string
+     * @param $type
+     * @param $length
+     *
+     * @return mixed|null
+     */
     private function readUnpack($string, $type, $length){
         $data = unpack($type, fread($string, $length));
         return array_pop($data);
     }
 
+    /**
+     * a function to convert a file size in bytes to a human-readable file size:
+     *
+     * @param $size
+     * @param $precision
+     *
+     * @return string
+     */
     private function formatBytes($size, $precision = 2) {
         $base = log($size, 1024);
         $suffixes = array('', 'K', 'M', 'G', 'T');
@@ -75,20 +115,26 @@ class Filemeta {
     /**
      * Detect filetype by signature
      * https://en.wikipedia.org/wiki/List_of_file_signatures
+     *
      * @param $signature
      *
      * @return string  extension
+     * @throws ErrorException
      */
     private function get_filetype($signature) {
+
+        if (strpos( $signature, "<?ph" )) {
+            throw new ErrorException("signature contains php code");
+        }
 
         if (strpos( $signature, MAGIC_NUMBERS["RIFF"] ) === 0) {
 
             // read 32 bits (uint32) | the whole file size in bytes
-            $this->meta['filesize'] = self::readInt($this->file_content);
-            $this->meta['readeable-filesize'] = self::formatBytes($this->meta['filesize']);
+            $this->metadata['filesize']           = self::readInt($this->file_content);
+            $this->metadata['readeable-filesize'] = self::formatBytes($this->metadata['filesize']);
 
             // read 32 bits - 4 char | webp extension
-            $this->meta['extension'] = self::readXChar($this->file_content, 4);
+            $this->metadata['extension'] = self::readXChar($this->file_content, 4);
 
             return "RIFF";
         }
@@ -311,11 +357,11 @@ class Filemeta {
 
 
     /**
-     * @param int $maxChunks
-     *
-     * @return array|false|bool
-     */
-    protected function get_riff_chunks( int $maxChunks = -1 ) {
+    * @param int $maxChunks
+    *
+    * @return bool
+    */
+    private function get_riff_chunks( int $maxChunks = -1 ) {
 
         $numberOfChunks = 0;
 
@@ -328,13 +374,12 @@ class Filemeta {
 
             $chunkSize = fread( $this->file_content, 4 );
 
-            if ( ! $chunkFourCC || ! $chunkSize || strlen( $chunkSize ) != 4 ) return false;
+            if ( ! $chunkFourCC || ! $chunkSize || strlen( $chunkSize ) != 4 ) break;
 
-            $intChunkSize = self::readUInt32( $chunkSize );
+            $intChunkSize = self::toUInt32( $chunkSize );
 
             // Add chunk info to the info structure
-            $this->meta[] = array(
-                'fourCC' => $chunkFourCC,
+            $this->metadata['riffs-chunks'][$chunkFourCC] = array(
                 'start'  => $chunkStart,
                 'size'   => $intChunkSize
             );
@@ -345,6 +390,8 @@ class Filemeta {
             // Seek to the next chunk
             fseek( $this->file_content, $intChunkSize + $padding, SEEK_CUR );
         }
+
+        return !empty( $this->metadata['riffs-chunks'] ) ? true : false;
     }
 
     /**
@@ -352,7 +399,7 @@ class Filemeta {
      *
      * @return array|false|bool
      */
-    protected function get_jfif_chunks( ) {
+    private function get_jfif_chunks( ) {
 
         // echo $this->meta['type'] = self::readXChar($this->file_content, 16); // read 4byte - 4 char | substring this to find jP or jP2 or JFIF type
 
@@ -380,7 +427,7 @@ class Filemeta {
                 $segdata = fread( $this->file_content, $decodedsize['size'] - 2 );
 
                 // Store the segment information in the output array
-                $this->meta['jfif'][$sizestr] = array(
+                $this->metadata['jfif'][$sizestr] = array(
                     "SegType"      => ord( $data[1] ),
                     "SegName"      => FILEMETA_INDEXES["JPEG_Segment_Names"][ ord( $data[1] ) ],
                     "SegDesc"      => FILEMETA_INDEXES["JPEG_Segment_Descriptions"][ ord( $data[1] ) ],
@@ -426,21 +473,62 @@ class Filemeta {
         // detect the filetype given the file header
         $magic = self::get_filetype($magic_numbers);
 
-        $this->meta['filename'] = $this->file_path; // read 32 bits (uint32) | the whole file size
-        $this->meta['ext'] = pathinfo($this->file_path, PATHINFO_EXTENSION);
+        // store some useful file info
+        $this->metadata['filename'] = $this->file_path;
+        $this->metadata['ext']      = pathinfo($this->file_path, PATHINFO_EXTENSION);
 
-        // TODO: each file has it own header with different size in bytes so this will be moved in "get_filetype" that will return the basic information stored in the first bytes of the files
+        // TODO: each file has it own header with different size in bytes so this will be moved in "get_filetype"
+        // that will return the basic information stored in the first bytes of the files
         if ($magic == 'RIFF') {
 
-            self::get_riff_chunks();
+            if ( self::get_riff_chunks() ) {
+
+                foreach ( $this->metadata['riffs-chunks'] as $chunk_name => $chunk_data ) {
+
+                        $chunkHeader = file_get_contents( $this->file_path, false, null, $chunk_data['start'],
+                        in_array( $chunk_name, array( 'VP8 ', 'VP8L', 'VP8X' ) ) ? MINIMUM_CHUNK_HEADER_LENGTH : $chunk_data['size'] + 8
+                    );
+
+                    switch ( $chunk_name ) {
+
+                        case 'VP8 ':
+                            self::decodeLossyChunkHeader( $chunkHeader );
+                            break;
+
+                        case 'VP8L':
+                            self::decodeLosslessChunkHeader( $chunkHeader );
+                            break;
+
+                        case 'VP8X':
+                            self::decodeExtendedChunkHeader( $chunkHeader );
+                            break;
+
+                        case 'EXIF':
+                            self::decodeExifChunkHeader( $chunkHeader );
+                            break;
+
+                        case 'ICCP':
+                            self::decodeIccpChunkHeader( $chunkHeader );
+                            break;
+
+                        case 'XMP ':
+                            self::decodeXmpChunkHeader( $chunkHeader );
+                            break;
+
+                        default:
+                            echo $chunk_name . " ";
+
+                    }
+                }
+            }
 
         } else if ($magic == 'jpeg') {
 
             self::get_jfif_chunks();
 
-            if (!empty($this->meta)) echo "unknown filetype ($magic)";
+            if (!empty($this->metadata)) echo "unknown filetype ($magic)";
         }
 
-        return $this->meta;
+        return $this->metadata;
     }
 }
