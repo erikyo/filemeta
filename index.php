@@ -1,3 +1,13 @@
+<?php
+
+include_once 'filemeta.php';
+
+use filemeta\filemeta;
+
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+?>
 <!doctype html>
 <html lang="EN">
 <head>
@@ -54,23 +64,16 @@
 </head>
 
 <body>
-
 <?php
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
 
-require_once('filemeta.php');
+  foreach (array_slice(scandir(__DIR__.'/media'), 2) as $media) {
+      $filepath = __DIR__.'/media/'.$media;
 
-foreach (array_slice(scandir(__DIR__.'/media'), 2) as $media) {
+      $mime = explode("/", mime_content_type('./media/'.$media));
 
-    $filepath = __DIR__.'/media/'.$media;
+      echo '<div class="media-wrap">';
 
-    $mime = explode("/",mime_content_type('./media/'.$media));
-
-    echo '<div class="media-wrap">';
-
-    switch ($mime[0]) {
+      switch ($mime[0]) {
         case "image":
             echo "<img src=\"media/$media\" />";
             break;
@@ -82,13 +85,14 @@ foreach (array_slice(scandir(__DIR__.'/media'), 2) as $media) {
             break;
     }
 
-    printf("<p>%s <span class='%s'>%s %s</span> (%s)</p>", $media, $mime[0], $mime[0], $mime[1], $filepath);
+      printf("<p>%s <span class='%s'>%s %s</span> (%s)</p>", $media, $mime[0], $mime[0], $mime[1], $filepath);
 
-    echo "<pre>";
-    $image_blob = new Filemeta($filepath);
-    print_r($image_blob->extract_meta());
-    echo '</pre></div><br/>';
-}
+      echo "<pre>";
+
+      $image_blob = new Filemeta($filepath);
+      print_r($image_blob->extractMeta());
+      echo '</pre></div><br/>';
+  }
 ?>
 </body>
 </html>

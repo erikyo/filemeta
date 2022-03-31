@@ -1,4 +1,4 @@
-# filemeta lib
+# FileMeta lib
 - filemeta.php: the php class 
 - globs.php: the hex definitions
 - index.php: nonthing special... this only a page that load some images in order to test the class functionalities

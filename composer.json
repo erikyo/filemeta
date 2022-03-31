@@ -1,0 +1,44 @@
+{
+  "name": "media/filemeta",
+  "description": "Detect and read any kind of metadata saved into files binaries",
+  "minimum-stability": "stable",
+  "license": "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "erik",
+      "email": "erik@codekraft.it"
+    }
+  ],
+  "require-dev": {
+		"phpcompatibility/php-compatibility": "^9.3",
+		"phpunit/phpunit": "^8.5.25",
+		"friendsofphp/php-cs-fixer": "^v3.8.0",
+		"squizlabs/php_codesniffer": "^3.6.2",
+		"brainmaestro/composer-git-hooks": "^2.8"
+	},
+	"scripts": {
+		"format": "phpcbf --standard=phpcs.xml --report-summary --report-source",
+		"lint": "phpcs --standard=phpcs.xml",
+		"test": "phpunit -c phpunit.xml --verbose",
+		"post-install-cmd": "cghooks add --ignore-lock",
+		"post-update-cmd": "cghooks update",
+		"php-cs-fixer": "php-cs-fixer fix"
+	},
+  "extra": {
+    "hooks": {
+      "config": {
+        "stop-on-failure": ["pre-push"]
+      },
+      "pre-commit": [
+        "echo committing as $(git config user.name)",
+        "phpcbf --standard=phpcs.xml --report-summary --report-source",
+        "php-cs-fixer fix"	
+      ],
+      "pre-push":  [
+        "phpcs --standard=phpcs.xml --dry-run",
+        "phpunit -c"
+      ],
+      "post-merge": "composer install"
+    }
+  }
+}
